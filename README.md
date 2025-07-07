@@ -10,10 +10,22 @@ A Model Context Protocol (MCP) server that provides access to the FatSecret nutr
 - **User Data Management**: Access user food diaries and add food entries
 - **Secure Credential Storage**: Encrypted storage of API credentials and tokens
 
-## Installation
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- A FatSecret developer account
+
+### Installation
 
 ```bash
-# Clone or download the server files
+# Clone the repository
+git clone https://github.com/your-username/fatsecret-mcp.git
+cd fatsecret-mcp
+
+# Install dependencies
 npm install
 
 # Build the TypeScript
@@ -42,6 +54,75 @@ The server needs to be configured in your MCP client (like Claude Desktop). Add 
   }
 }
 ```
+
+### 3. Authentication Process
+
+#### Option 1: Using the OAuth Console Utility (Recommended)
+
+The easiest way to authenticate is using the included OAuth console utility:
+
+```bash
+# Make sure you've built the project first
+npm run build
+
+# Run the OAuth console utility
+node dist/cli.js
+```
+
+This interactive utility will:
+1. Ask for your Client ID and Client Secret
+2. Save them securely in `~/.fatsecret-mcp-config.json`
+3. Guide you through the OAuth flow:
+   - Opens your browser to the FatSecret authorization page
+   - Prompts you to paste the verifier code after authorization
+   - Saves the access tokens for future use
+
+#### Option 2: Manual Authentication via MCP Tools
+
+If you prefer to authenticate through the MCP interface (e.g., in Claude):
+
+1. **Set your API credentials:**
+   ```
+   Use tool: set_credentials
+   Parameters:
+   - clientId: "your_client_id_here"
+   - clientSecret: "your_client_secret_here"
+   ```
+
+2. **Start the OAuth flow:**
+   ```
+   Use tool: start_oauth_flow
+   Parameters:
+   - callbackUrl: "oob" (for out-of-band authentication)
+   ```
+
+3. **Visit the authorization URL** provided in the response:
+   - Log in to your FatSecret account (or create one)
+   - Click "Allow" to authorize the application
+   - Copy the verifier code shown on the page
+
+4. **Complete the OAuth flow:**
+   ```
+   Use tool: complete_oauth_flow
+   Parameters:
+   - requestToken: [from step 2 response]
+   - requestTokenSecret: [from step 2 response]
+   - verifier: [the code you copied from the authorization page]
+   ```
+
+#### Option 3: Using Environment Variables
+
+You can also provide credentials via environment variables:
+
+```bash
+# Create a .env file in the project root
+CLIENT_ID=your_client_id_here
+CLIENT_SECRET=your_client_secret_here
+
+# The server will automatically load these on startup
+```
+
+Note: You'll still need to complete the OAuth flow for user-specific operations.
 
 ## Usage
 
@@ -268,6 +349,67 @@ The server provides detailed error messages for common issues:
 - Network connectivity issues
 - Invalid parameters
 
+## Testing
+
+### Testing from the Command Line
+
+The project includes several test utilities:
+
+#### 1. Interactive Test Tool
+
+```bash
+# Run the interactive test menu
+node test-interactive.js
+```
+
+This provides a menu-driven interface to test all MCP tools.
+
+#### 2. Date Conversion Test
+
+```bash
+# Test the date conversion logic
+node test-date-conversion.js
+```
+
+Verifies that dates are correctly converted to FatSecret's "days since epoch" format.
+
+#### 3. Direct JSON-RPC Testing
+
+```bash
+# Send test messages via pipe
+node test-mcp.js | node dist/index.js
+```
+
+### Testing in Claude Desktop
+
+1. Restart Claude Desktop after configuring the MCP server
+2. Look for "fatsecret" in the available tools
+3. Start by using `check_auth_status` to verify the connection
+
+## Troubleshooting
+
+### Common Issues
+
+#### "Invalid integer value: date"
+- The FatSecret API expects dates as days since epoch (1970-01-01)
+- The server automatically converts YYYY-MM-DD format dates
+- If you get this error, ensure you're using the latest version
+
+#### OAuth Authentication Fails
+- Verify your Client ID and Client Secret are correct
+- Ensure you're using the correct URLs (authentication.fatsecret.com for OAuth)
+- Check that you're copying the entire verifier code from the authorization page
+
+#### Server Not Found in Claude
+- Ensure the path in your MCP configuration is absolute, not relative
+- Verify the server was built successfully (`npm run build`)
+- Check Claude's logs for any error messages
+
+#### "User authentication required"
+- Complete the OAuth flow using either the CLI utility or MCP tools
+- Check authentication status with `check_auth_status` tool
+- Tokens are saved in `~/.fatsecret-mcp-config.json`
+
 ## Development
 
 To modify or extend the server:
@@ -282,6 +424,20 @@ npm start
 
 # Development mode with auto-rebuild
 npm run dev
+```
+
+### Project Structure
+
+```
+fatsecret-mcp/
+├── src/
+│   ├── index.ts        # Main MCP server implementation
+│   └── cli.ts          # OAuth console utility
+├── dist/               # Compiled JavaScript files
+├── test-*.js           # Test utilities
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
 ## License
