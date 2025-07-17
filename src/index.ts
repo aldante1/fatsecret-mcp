@@ -531,6 +531,19 @@ class FatSecretMCPServer {
               properties: {},
             },
           },
+          {
+            name: "get_weight_month",
+            description: "Get user's weight entries for a specific month",
+            inputSchema: {
+              type: "object",
+              properties: {
+                date: {
+                  type: "string",
+                  description: "Date in YYYY-MM-DD format to specify the month (default: current month)",
+                },
+              },
+            },
+          },
         ],
       };
     });
@@ -561,6 +574,8 @@ class FatSecretMCPServer {
           return await this.handleAddFoodEntry(request.params.arguments);
         case "check_auth_status":
           return await this.handleCheckAuthStatus(request.params.arguments);
+        case "get_weight_month":
+          return await this.handleGetWeightMonth(request.params.arguments);
         default:
           throw new McpError(
             ErrorCode.MethodNotFound,
@@ -984,6 +999,47 @@ class FatSecretMCPServer {
         },
       ],
     };
+  }
+
+  private async handleGetWeightMonth(args: any) {
+    if (!this.config.accessToken || !this.config.accessTokenSecret) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        "User authentication required. Please complete the OAuth flow first.",
+      );
+    }
+
+    try {
+      const date = this.dateToFatSecretFormat(args.date);
+      const params = {
+        method: "weights.get_month",
+        date: date,
+        format: "json",
+      };
+
+      const response = await this.makeApiRequest(
+        "GET",
+        this.baseUrl,
+        params,
+        true,
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(response, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to get weight entries for month: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
   }
 
   async run() {
