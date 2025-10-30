@@ -17,8 +17,14 @@ A Model Context Protocol (MCP) server optimized for **Poke** that provides user-
 
 In **Settings → Integrations**, add your MCP server URL:
 ```
-https://your-domain.com/fatsecret-nutrition
+https://your-app.railway.app/sse
 ```
+
+**API Key (if configured):** Your `MCP_AUTH_TOKEN` value
+
+**Alternative URLs:**
+- Health check: `https://your-app.railway.app/health`
+- Server info: `https://your-app.railway.app/`
 
 ### 2. Get FatSecret API Credentials
 

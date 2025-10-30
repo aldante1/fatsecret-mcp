@@ -918,6 +918,18 @@ class FatSecretMCPServer {
 
   async runSSE(port: number = 3000) {
     const server = createServer(async (req, res) => {
+      // Enable CORS for all requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control');
+
+      // Handle OPTIONS preflight requests
+      if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+      }
+
       // Health check endpoint
       if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -950,11 +962,29 @@ class FatSecretMCPServer {
         return;
       }
 
+      // Root endpoint with server info
+      if (req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          name: 'FatSecret Nutrition MCP',
+          version: '1.0.0',
+          status: 'running',
+          endpoints: {
+            health: '/health',
+            sse: '/sse',
+            info: '/'
+          },
+          auth_required: !!process.env.MCP_AUTH_TOKEN,
+          timestamp: new Date().toISOString()
+        }));
+        return;
+      }
+
       // 404 for other endpoints
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ 
         error: 'Not Found',
-        message: 'Available endpoints: /health, /sse'
+        message: 'Available endpoints: /, /health, /sse'
       }));
     });
 
