@@ -997,50 +997,186 @@ class FatSecretMCPServer {
                 tools: [
                   {
                     name: "search_nutrition",
-                    description: "Search for foods and recipes by query",
+                    description: "Search for foods and recipes with nutrition information. Returns basic info for quick overview - use get_nutrition_details for complete nutritional data including vitamins, minerals, and serving sizes.",
                     inputSchema: {
                       type: "object",
                       properties: {
-                        query: { 
-                          type: "string", 
-                          description: "Search query for foods or recipes" 
-                        }
+                        query: {
+                          type: "string",
+                          description: "Search term for food or recipe (e.g., 'chicken breast', 'banana', 'pasta carbonara')",
+                        },
+                        type: {
+                          type: "string",
+                          enum: ["all", "foods", "recipes"],
+                          description: "Search type - include both foods and recipes, or limit to one type",
+                          default: "all",
+                        },
+                        limit: {
+                          type: "number",
+                          description: "Maximum number of results (default: 20)",
+                          default: 20,
+                          minimum: 1,
+                          maximum: 50,
+                        },
                       },
-                      required: ["query"]
-                    }
+                      required: ["query"],
+                    },
                   },
                   {
                     name: "get_nutrition_details",
-                    description: "Get detailed nutrition information for a specific food",
+                    description: "Get complete nutritional information for a specific food or recipe including calories, macronutrients, vitamins, minerals, and all available serving sizes. Use search_nutrition first to find the food_id or recipe_id.",
                     inputSchema: {
                       type: "object",
                       properties: {
-                        food_id: { 
+                        foodId: {
+                          type: "string",
+                          description: "FatSecret food ID (from search_nutrition results)",
+                        },
+                        recipeId: {
                           type: "string", 
-                          description: "FatSecret food ID" 
-                        }
+                          description: "FatSecret recipe ID (from search_nutrition results)",
+                        },
                       },
-                      required: ["food_id"]
-                    }
+                      required: [],
+                      anyOf: [
+                        { required: ["foodId"] },
+                        { required: ["recipeId"] }
+                      ],
+                    },
+                  },
+                  {
+                    name: "get_daily_nutrition",
+                    description: "Get complete daily nutrition summary including all food entries, total calories, macronutrients, and meal breakdown for a specific date. Requires OAuth authentication.",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        date: {
+                          type: "string",
+                          description: "Date in YYYY-MM-DD format (default: today)",
+                          pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                        },
+                      },
+                      required: [],
+                    },
+                  },
+                  {
+                    name: "add_food_to_diary",
+                    description: "Add a food item to your nutrition diary with specific serving size and meal type. Requires OAuth authentication. Use get_nutrition_details first to find serving_id.",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        foodId: {
+                          type: "string",
+                          description: "FatSecret food ID (from search_nutrition)",
+                        },
+                        servingId: {
+                          type: "string",
+                          description: "Serving ID for the food (from get_nutrition_details)",
+                        },
+                        quantity: {
+                          type: "number",
+                          description: "Number of servings (e.g., 1.5 for 1.5 servings)",
+                          minimum: 0.1,
+                          maximum: 100,
+                        },
+                        mealType: {
+                          type: "string",
+                          enum: ["breakfast", "lunch", "dinner", "snack"],
+                          description: "Meal type for the food entry",
+                        },
+                        date: {
+                          type: "string",
+                          description: "Date in YYYY-MM-DD format (default: today)",
+                          pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                        },
+                      },
+                      required: ["foodId", "servingId", "quantity", "mealType"],
+                    },
+                  },
+                  {
+                    name: "authenticate_fatsecret",
+                    description: "Complete OAuth authentication flow with FatSecret to enable user-specific features like diary management",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        verifier: {
+                          type: "string",
+                          description: "OAuth verifier from callback URL (complete the flow)",
+                        },
+                        requestToken: {
+                          type: "string",
+                          description: "OAuth request token from callback URL (complete the flow)",
+                        },
+                        requestTokenSecret: {
+                          type: "string",
+                          description: "OAuth request token secret from callback URL (complete the flow)",
+                        },
+                      },
+                      required: [],
+                    },
+                  },
+                  {
+                    name: "check_authentication",
+                    description: "Check current authentication status with FatSecret API",
+                    inputSchema: {
+                      type: "object",
+                      properties: {},
+                      required: [],
+                    },
                   }
                 ]
               }
             };
           } else if (message.method === 'tools/call') {
-            // Handle tool calls (basic implementation)
+            // Handle tool calls using real tool handlers
             const { name, arguments: args } = message.params;
-            response = {
-              jsonrpc: "2.0",
-              id: message.id,
-              result: {
-                content: [
-                  {
-                    type: "text",
-                    text: `Tool ${name} called with args: ${JSON.stringify(args)}. This is a placeholder response.`
-                  }
-                ]
+            
+            try {
+              // Load configuration and call the actual tool handler
+              await this.loadConfig();
+              
+              let toolResult;
+              switch (name) {
+                case "search_nutrition":
+                  toolResult = await this.handleSearchNutrition(args);
+                  break;
+                case "get_nutrition_details":
+                  toolResult = await this.handleGetNutritionDetails(args);
+                  break;
+                case "get_daily_nutrition":
+                  toolResult = await this.handleGetDailyNutrition(args);
+                  break;
+                case "add_food_to_diary":
+                  toolResult = await this.handleAddFoodToDiary(args);
+                  break;
+                case "get_user_profile":
+                  toolResult = await this.handleGetUserProfile(args);
+                  break;
+                case "authenticate_fatsecret":
+                  toolResult = await this.handleAuthenticateFatSecret(args);
+                  break;
+                case "check_authentication":
+                  toolResult = await this.handleCheckAuthentication(args);
+                  break;
+                default:
+                  throw new Error(`Unknown tool: ${name}`);
               }
-            };
+              
+              response = {
+                jsonrpc: "2.0",
+                id: message.id,
+                result: toolResult
+              };
+            } catch (toolError) {
+              response = {
+                jsonrpc: "2.0",
+                id: message.id,
+                error: {
+                  code: -32603,
+                  message: toolError instanceof Error ? toolError.message : 'Tool execution failed'
+                }
+              };
+            }
           } else {
             response = {
               jsonrpc: "2.0",
