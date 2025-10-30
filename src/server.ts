@@ -941,6 +941,105 @@ class FatSecretMCPServer {
         return;
       }
 
+      // HTTP POST endpoint for Poke (alternative to SSE)
+      if (req.url === '/mcp' && req.method === 'POST') {
+        try {
+          // Check MCP_AUTH_TOKEN if configured
+          const authToken = process.env.MCP_AUTH_TOKEN;
+          if (authToken) {
+            const providedToken = req.headers.authorization?.replace('Bearer ', '');
+            if (providedToken !== authToken) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                error: 'Unauthorized',
+                message: 'Valid MCP_AUTH_TOKEN required'
+              }));
+              return;
+            }
+          }
+
+          // Read request body
+          const body = await new Promise<string>((resolve, reject) => {
+            let data = '';
+            req.on('data', chunk => data += chunk);
+            req.on('end', () => resolve(data));
+            req.on('error', reject);
+          });
+
+          const message = JSON.parse(body.toString());
+          
+          // Handle MCP request manually
+          try {
+            let response;
+            
+            if (message.method === 'initialize') {
+              response = {
+                jsonrpc: "2.0",
+                id: message.id,
+                result: {
+                  protocolVersion: "2024-11-05",
+                  capabilities: {
+                    tools: {}
+                  },
+                  serverInfo: {
+                    name: "FatSecret Nutrition",
+                    version: "1.0.0"
+                  }
+                }
+              };
+            } else if (message.method === 'tools/list') {
+              response = {
+                jsonrpc: "2.0", 
+                id: message.id,
+                result: {
+                  tools: [
+                    {
+                      name: "search_nutrition",
+                      description: "Search for foods and recipes by query",
+                      inputSchema: {
+                        type: "object",
+                        properties: {
+                          query: { type: "string", description: "Search query for foods or recipes" }
+                        },
+                        required: ["query"]
+                      }
+                    }
+                  ]
+                }
+              };
+            } else {
+              response = {
+                jsonrpc: "2.0",
+                id: message.id,
+                error: {
+                  code: -32601,
+                  message: "Method not found"
+                }
+              };
+            }
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response));
+            return;
+          } catch (serverError) {
+            console.error('Server request error:', serverError);
+            throw serverError;
+          }
+          return;
+        } catch (error) {
+          console.error('MCP request error:', error);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            jsonrpc: "2.0",
+            error: {
+              code: -32603,
+              message: error instanceof Error ? error.message : 'Unknown error'
+            }
+          }));
+          return;
+        }
+      }
+
       // SSE endpoint with auth
       if (req.url === '/sse') {
         // Check MCP_AUTH_TOKEN if configured
@@ -972,6 +1071,7 @@ class FatSecretMCPServer {
           endpoints: {
             health: '/health',
             sse: '/sse',
+            mcp: '/mcp (POST)',
             info: '/'
           },
           auth_required: !!process.env.MCP_AUTH_TOKEN,
@@ -984,7 +1084,7 @@ class FatSecretMCPServer {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ 
         error: 'Not Found',
-        message: 'Available endpoints: /, /health, /sse'
+        message: 'Available endpoints: /, /health, /sse, /mcp (POST)'
       }));
     });
 

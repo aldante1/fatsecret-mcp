@@ -17,14 +17,17 @@ A Model Context Protocol (MCP) server optimized for **Poke** that provides user-
 
 In **Settings → Integrations**, add your MCP server URL:
 ```
-https://your-app.railway.app/sse
+https://your-app.railway.app/mcp
 ```
 
 **API Key (if configured):** Your `MCP_AUTH_TOKEN` value
 
 **Alternative URLs:**
+- SSE endpoint: `https://your-app.railway.app/sse`
 - Health check: `https://your-app.railway.app/health`
 - Server info: `https://your-app.railway.app/`
+
+**Note:** Try `/mcp` first (HTTP POST), if issues persist use `/sse` (Server-Sent Events)
 
 ### 2. Get FatSecret API Credentials
 
