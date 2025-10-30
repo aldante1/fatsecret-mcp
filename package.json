@@ -1,21 +1,29 @@
 {
-  "name": "fatsecret-mcp-server",
-  "version": "0.1.0",
-  "description": "Model Context Protocol server for FatSecret API with 3-Legged OAuth support",
+  "name": "fatsecret-nutrition-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for FatSecret Nutrition API with user-centric tools designed for Poke",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js",
-    "clean": "rm -rf dist"
+    "start": "node dist/server.js",
+    "dev": "tsc && node dist/server.js",
+    "dev:stdio": "tsc && node dist/index.js",
+    "clean": "rm -rf dist",
+    "railway:deploy": "railway up",
+    "railway:logs": "railway logs"
   },
   "keywords": [
     "mcp",
     "fatsecret",
     "nutrition",
     "api",
-    "oauth"
+    "oauth",
+    "poke",
+    "health",
+    "food",
+    "diary",
+    "railway"
   ],
   "author": "Your Name",
   "license": "MIT",
@@ -26,12 +34,16 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "railway": "^3.14.0"
   },
   "bin": {
-    "fatsecret-mcp-server": "./dist/index.js"
+    "fatsecret-nutrition-mcp": "./dist/index.js"
   },
   "files": [
     "dist/"
-  ]
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

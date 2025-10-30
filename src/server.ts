@@ -2,6 +2,7 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
   ErrorCode,
@@ -15,6 +16,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import * as dotenv from "dotenv";
+import { createServer } from "http";
 
 // Suppress dotenv console output by temporarily overriding console.log
 const originalLog = console.log;
@@ -908,12 +910,75 @@ class FatSecretMCPServer {
     };
   }
 
-  async run() {
+  async runStdio() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error("FatSecret MCP server running on stdio");
   }
+
+  async runSSE(port: number = 3000) {
+    const server = createServer(async (req, res) => {
+      // Health check endpoint
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          status: 'healthy', 
+          timestamp: new Date().toISOString(),
+          auth_required: !!process.env.MCP_AUTH_TOKEN
+        }));
+        return;
+      }
+
+      // SSE endpoint with auth
+      if (req.url === '/sse') {
+        // Check MCP_AUTH_TOKEN if configured
+        const authToken = process.env.MCP_AUTH_TOKEN;
+        if (authToken) {
+          const providedToken = req.headers.authorization?.replace('Bearer ', '');
+          if (providedToken !== authToken) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              error: 'Unauthorized',
+              message: 'Valid MCP_AUTH_TOKEN required'
+            }));
+            return;
+          }
+        }
+
+        const transport = new SSEServerTransport('/message', res);
+        await this.server.connect(transport);
+        return;
+      }
+
+      // 404 for other endpoints
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Not Found',
+        message: 'Available endpoints: /health, /sse'
+      }));
+    });
+
+    server.listen(port, () => {
+      console.log(`FatSecret MCP server running on http://localhost:${port}`);
+      console.log(`Health check: http://localhost:${port}/health`);
+      console.log(`SSE endpoint: http://localhost:${port}/sse`);
+      if (process.env.MCP_AUTH_TOKEN) {
+        console.log(`🔒 Authentication enabled - MCP_AUTH_TOKEN required`);
+      }
+    });
+  }
 }
 
-const server = new FatSecretMCPServer();
-server.run().catch(console.error);
+// Check if running in Railway/web environment
+const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+const port = parseInt(process.env.PORT || '3000');
+
+if (isRailway) {
+  // Run as HTTP server for Railway
+  const server = new FatSecretMCPServer();
+  server.runSSE(port).catch(console.error);
+} else {
+  // Run as stdio server for local development
+  const server = new FatSecretMCPServer();
+  server.runStdio().catch(console.error);
+}
