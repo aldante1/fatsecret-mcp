@@ -22,12 +22,14 @@ https://your-app.railway.app/mcp
 
 **API Key (if configured):** Your `MCP_AUTH_TOKEN` value
 
+**Transport:** Poke automatically uses **Streamable HTTP** (POST requests)
+
 **Alternative URLs:**
-- SSE endpoint: `https://your-app.railway.app/sse`
+- SSE endpoint: `https://your-app.railway.app/sse` (fallback)
 - Health check: `https://your-app.railway.app/health`
 - Server info: `https://your-app.railway.app/`
 
-**Note:** Try `/mcp` first (HTTP POST), if issues persist use `/sse` (Server-Sent Events)
+**Note:** According to [Poke MCP specification](https://poke.com/docs/mcp-guide/reference/mcp-client-specification), Poke attempts Streamable HTTP first, then falls back to SSE only for non-authentication failures.
 
 ### 2. Get FatSecret API Credentials
 

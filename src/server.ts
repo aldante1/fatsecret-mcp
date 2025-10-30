@@ -941,7 +941,7 @@ class FatSecretMCPServer {
         return;
       }
 
-      // HTTP POST endpoint for Poke (alternative to SSE)
+      // HTTP POST endpoint for Poke (Streamable HTTP)
       if (req.url === '/mcp' && req.method === 'POST') {
         try {
           // Check MCP_AUTH_TOKEN if configured
@@ -951,8 +951,11 @@ class FatSecretMCPServer {
             if (providedToken !== authToken) {
               res.writeHead(401, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ 
-                error: 'Unauthorized',
-                message: 'Valid MCP_AUTH_TOKEN required'
+                jsonrpc: "2.0",
+                error: {
+                  code: -32001,
+                  message: "Unauthorized"
+                }
               }));
               return;
             }
@@ -968,67 +971,93 @@ class FatSecretMCPServer {
 
           const message = JSON.parse(body.toString());
           
-          // Handle MCP request manually
-          try {
-            let response;
-            
-            if (message.method === 'initialize') {
-              response = {
-                jsonrpc: "2.0",
-                id: message.id,
-                result: {
-                  protocolVersion: "2024-11-05",
-                  capabilities: {
-                    tools: {}
-                  },
-                  serverInfo: {
-                    name: "FatSecret Nutrition",
-                    version: "1.0.0"
-                  }
+          // Handle MCP request according to Poke specification
+          let response;
+          
+          if (message.method === 'initialize') {
+            response = {
+              jsonrpc: "2.0",
+              id: message.id,
+              result: {
+                protocolVersion: "2024-11-05",
+                capabilities: {
+                  tools: {}
+                },
+                serverInfo: {
+                  name: "FatSecret Nutrition",
+                  version: "1.0.0"
                 }
-              };
-            } else if (message.method === 'tools/list') {
-              response = {
-                jsonrpc: "2.0", 
-                id: message.id,
-                result: {
-                  tools: [
-                    {
-                      name: "search_nutrition",
-                      description: "Search for foods and recipes by query",
-                      inputSchema: {
-                        type: "object",
-                        properties: {
-                          query: { type: "string", description: "Search query for foods or recipes" }
-                        },
-                        required: ["query"]
-                      }
+              }
+            };
+          } else if (message.method === 'tools/list') {
+            response = {
+              jsonrpc: "2.0", 
+              id: message.id,
+              result: {
+                tools: [
+                  {
+                    name: "search_nutrition",
+                    description: "Search for foods and recipes by query",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        query: { 
+                          type: "string", 
+                          description: "Search query for foods or recipes" 
+                        }
+                      },
+                      required: ["query"]
                     }
-                  ]
-                }
-              };
-            } else {
-              response = {
-                jsonrpc: "2.0",
-                id: message.id,
-                error: {
-                  code: -32601,
-                  message: "Method not found"
-                }
-              };
-            }
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
-          } catch (serverError) {
-            console.error('Server request error:', serverError);
-            throw serverError;
+                  },
+                  {
+                    name: "get_nutrition_details",
+                    description: "Get detailed nutrition information for a specific food",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        food_id: { 
+                          type: "string", 
+                          description: "FatSecret food ID" 
+                        }
+                      },
+                      required: ["food_id"]
+                    }
+                  }
+                ]
+              }
+            };
+          } else if (message.method === 'tools/call') {
+            // Handle tool calls (basic implementation)
+            const { name, arguments: args } = message.params;
+            response = {
+              jsonrpc: "2.0",
+              id: message.id,
+              result: {
+                content: [
+                  {
+                    type: "text",
+                    text: `Tool ${name} called with args: ${JSON.stringify(args)}. This is a placeholder response.`
+                  }
+                ]
+              }
+            };
+          } else {
+            response = {
+              jsonrpc: "2.0",
+              id: message.id,
+              error: {
+                code: -32601,
+                message: "Method not found"
+              }
+            };
           }
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(response));
           return;
         } catch (error) {
           console.error('MCP request error:', error);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             jsonrpc: "2.0",
             error: {
