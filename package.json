@@ -9,9 +9,7 @@
     "start": "node dist/server.js",
     "dev": "tsc && node dist/server.js",
     "dev:stdio": "tsc && node dist/index.js",
-    "clean": "rm -rf dist",
-    "railway:deploy": "railway up",
-    "railway:logs": "railway logs"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "mcp",
@@ -22,8 +20,7 @@
     "poke",
     "health",
     "food",
-    "diary",
-    "railway"
+    "diary"
   ],
   "author": "Your Name",
   "license": "MIT",
@@ -34,8 +31,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "railway": "^3.14.0"
+    "typescript": "^5.8.3"
   },
   "bin": {
     "fatsecret-nutrition-mcp": "./dist/index.js"

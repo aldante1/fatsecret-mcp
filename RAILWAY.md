@@ -4,22 +4,15 @@
 
 ### Предварительные требования
 
-1. **Установите Railway CLI:**
-   ```bash
-   npm install -g @railway/cli
-   ```
-
-2. **Войдите в Railway:**
-   ```bash
-   railway login
-   ```
+1. **Создайте аккаунт Railway:** [railway.app](https://railway.app/)
+2. **Подключите GitHub репозиторий** или создайте новый проект
 
 ### Шаги развертывания
 
 #### 1. Подготовка проекта
 
 ```bash
-# Соберите проект
+# Соберите проект локально для проверки
 npm run build
 
 # Проверьте локально
@@ -28,55 +21,28 @@ npm start
 
 #### 2. Создание Railway проекта
 
-```bash
-# Инициализируйте Railway проект
-railway init
-
-# Создайте новый проект
-railway new
-```
+1. В Railway dashboard нажмите **New Project**
+2. Выберите **Deploy from GitHub repo** или загрузите код
+3. Выберите ваш репозиторий
 
 #### 3. Настройка переменных окружения
 
 **Обязательные переменные:**
 
-```bash
-# FatSecret API учетные данные
-railway variables set CLIENT_ID=your_fatsecret_client_id
-railway variables set CLIENT_SECRET=your_fatsecret_client_secret
+В Railway dashboard перейдите в **Settings → Variables** и добавьте:
 
-# Среда выполнения
-railway variables set NODE_ENV=production
-```
+- `CLIENT_ID`: Ваш FatSecret Client ID
+- `CLIENT_SECRET`: Ваш FatSecret Client Secret
+- `NODE_ENV`: `production`
 
 **Рекомендуемые для безопасности:**
 
-```bash
-# Токен авторизации для Poke (рекомендуется)
-railway variables set MCP_AUTH_TOKEN=your_secure_auth_token_here
-```
+- `MCP_AUTH_TOKEN`: Случайный токен для авторизации (рекомендуется)
 
 **Опциональные переменные:**
 
-```bash
-# Порт (по умолчанию 3000)
-railway variables set PORT=3000
-
-# Переопределение пути к конфигурационному файлу
-railway variables set CONFIG_PATH=/tmp/fatsecret-nutrition-config.json
-```
-
-**Через Railway Dashboard:**
-1. Перейдите в ваш проект → Settings → Variables
-2. Добавьте обязательные переменные:
-   - `CLIENT_ID`: Ваш FatSecret Client ID
-   - `CLIENT_SECRET`: Ваш FatSecret Client Secret
-   - `NODE_ENV`: `production`
-3. Добавьте для безопасности:
-   - `MCP_AUTH_TOKEN`: Случайный токен для авторизации (рекомендуется)
-4. Опционально:
-   - `PORT`: `3000` (обычно устанавливается автоматически)
-   - `CONFIG_PATH`: `/tmp/fatsecret-nutrition-config.json`
+- `PORT`: `3000` (обычно устанавливается автоматически)
+- `CONFIG_PATH`: `/tmp/fatsecret-nutrition-config.json`
 
 **⚠️ Важно:** 
 - `CLIENT_ID` и `CLIENT_SECRET` должны быть получены из [FatSecret Platform](https://platform.fatsecret.com/)
@@ -86,12 +52,13 @@ railway variables set CONFIG_PATH=/tmp/fatsecret-nutrition-config.json
 #### 4. Развертывание
 
 ```bash
-# Разверните проект
-npm run railway:deploy
-
-# Следите за логами
-npm run railway:logs
+# Commit и push изменений для автоматического развертывания
+git add .
+git commit -m "Deploy to Railway"
+git push origin main
 ```
+
+Railway автоматически определит Dockerfile и начнет сборку.
 
 ### 🌐 Доступные эндпоинты
 
@@ -113,13 +80,14 @@ npm run railway:logs
 
 **Команды для быстрой настройки:**
 ```bash
-# Обязательные переменные
-railway variables set CLIENT_ID=your_fatsecret_client_id
-railway variables set CLIENT_SECRET=your_fatsecret_client_secret
-railway variables set NODE_ENV=production
+# Генерация токена безопасности
+MCP_AUTH_TOKEN=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 
-# Для безопасности (рекомендуется)
-railway variables set MCP_AUTH_TOKEN=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+# Переменные для добавления в Railway Dashboard:
+# CLIENT_ID=your_fatsecret_client_id
+# CLIENT_SECRET=your_fatsecret_client_secret
+# NODE_ENV=production
+# MCP_AUTH_TOKEN=$MCP_AUTH_TOKEN
 ```
 
 ### 🔧 Конфигурация для Poke
@@ -149,12 +117,15 @@ https://your-app.railway.app/sse
 
 #### Проверка статуса
 ```bash
-# Просмотр логов
-railway logs
-
 # Проверка health endpoint
 curl https://your-app.railway.app/health
 ```
+
+**Мониторинг через Railway Dashboard:**
+- **Logs:** View real-time logs в вашем проекте
+- **Metrics:** Встроенные метрики производительности
+- **Health Checks:** Автоматическая проверка каждые 30 секунд
+- **Alerts:** Настройка уведомлений об ошибках
 
 #### Метрики
 - Railway предоставляет автоматический мониторинг
@@ -177,18 +148,14 @@ curl https://your-app.railway.app/health
    # Проверьте локальную сборку
    npm run build
    
-   # Очистите кэш Railway
-   railway rebuild
+   # Проверьте Dockerfile
+   docker build .
    ```
 
 2. **Проблемы с переменными окружения:**
-   ```bash
-   # Проверьте переменные
-   railway variables list
-   
-   # Обновите при необходимости
-   railway variables set CLIENT_ID=new_value
-   ```
+   - Проверьте переменные в Railway Dashboard → Settings → Variables
+   - Убедитесь что все обязательные переменные установлены
+   - Проверьте правильность значений
 
 3. **Timeout ошибки:**
    - Railway имеет таймаут 60 секунд для HTTP запросов
@@ -196,13 +163,14 @@ curl https://your-app.railway.app/health
 
 #### Логирование
 
-```bash
-# Просмотр логов в реальном времени
-railway logs -f
+**Просмотр логов в Railway Dashboard:**
+1. Откройте ваш проект в Railway
+2. Перейдите в вкладку **Logs**
+3. Выберите нужный deployment для просмотра логов
 
-# Фильтрация логов
-railway logs --grep "error"
-```
+**Фильтрация логов:**
+- Используйте поиск в логах для фильтрации
+- Ищите ошибки по ключевым словам: "error", "failed", "timeout"
 
 ### 🔄 Обновления
 
@@ -212,8 +180,7 @@ git add .
 git commit -m "Update"
 git push
 
-# Или принудительное обновление
-railway up
+# Railway автоматически развернет изменения
 ```
 
 ### 📊 Масштабирование

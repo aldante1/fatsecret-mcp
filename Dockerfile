@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -29,10 +29,14 @@ RUN adduser -S nodejs -u 1001
 # Set working directory
 WORKDIR /app
 
+# Copy package files first
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev
+
 # Copy built application
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
 # Switch to non-root user
 USER nodejs

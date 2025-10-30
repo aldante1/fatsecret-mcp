@@ -30,19 +30,16 @@ https://your-domain.com/fatsecret-nutrition
 
 #### Option A: Railway (Recommended)
 ```bash
-# Install Railway CLI
-npm install -g @railway/cli
+# Configure environment variables in Railway dashboard:
+# CLIENT_ID=your_fatsecret_client_id
+# CLIENT_SECRET=your_fatsecret_client_secret
+# NODE_ENV=production
+# MCP_AUTH_TOKEN=your_secure_token
 
-# Configure environment variables
-railway variables set CLIENT_ID=your_fatsecret_client_id
-railway variables set CLIENT_SECRET=your_fatsecret_client_secret
-railway variables set NODE_ENV=production
-
-# Add security token (recommended)
-railway variables set MCP_AUTH_TOKEN=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-
-# Deploy to Railway
-npm run railway:deploy
+# Deploy to Railway (use Railway dashboard or git push)
+git add .
+git commit -m "Deploy to Railway"
+git push origin main
 ```
 📖 **Full guide:** [RAILWAY.md](./RAILWAY.md)
 
@@ -178,11 +175,8 @@ npm start
 # Local stdio development
 npm run dev:stdio
 
-# Railway deployment
-npm run railway:deploy
-
-# View Railway logs
-npm run railway:logs
+# Clean build artifacts
+npm run clean
 ```
 
 ## 📁 Project Structure
